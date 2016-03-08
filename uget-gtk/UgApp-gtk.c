@@ -650,13 +650,13 @@ static void	on_confirm_to_quit_response (GtkWidget* dialog, gint response, struc
 
 	app = ucd->app;
 	app->dialogs.close_confirmation = NULL;
-	if (response == GTK_RESPONSE_YES) {
-		// window close setting
-		if (gtk_toggle_button_get_active (ucd->setting) == FALSE)
-			app->setting.ui.close_action = 1;		// Minimize to tray.
-		else
-			app->setting.ui.close_action = 2;		// Exit.
-		// window close confirmation
+
+	// window close setting
+	if (response == GTK_RESPONSE_YES)
+		app->setting.ui.close_action = 2;			// Exit.
+	if (response == GTK_RESPONSE_NO)
+		app->setting.ui.close_action = 1;			// Minimize to tray.
+	if (response == GTK_RESPONSE_YES || response == GTK_RESPONSE_NO) {
 		if (gtk_toggle_button_get_active (ucd->confirmation) == FALSE)
 			app->setting.ui.close_confirmation = TRUE;
 		else
@@ -676,6 +676,7 @@ void	ug_app_confirm_to_quit (UgAppGtk* app)
 	GtkBox*		hbox;
 	GtkBox*		vbox;
 	gchar*		title;
+	gint		default_action;
 
 	// show previous message dialog
 	if (app->dialogs.close_confirmation) {
@@ -686,9 +687,11 @@ void	ug_app_confirm_to_quit (UgAppGtk* app)
 	title = g_strconcat (UG_APP_GTK_NAME " - ", _("Really Quit?"), NULL);
 	dialog = gtk_dialog_new_with_buttons (title, app->window.self,
 			GTK_DIALOG_DESTROY_WITH_PARENT,
-			GTK_STOCK_NO,  GTK_RESPONSE_NO,
-			GTK_STOCK_YES, GTK_RESPONSE_YES,
+			_("Cancel"),  GTK_RESPONSE_CANCEL,
+			_("Minimize"),  GTK_RESPONSE_NO,
+			_("Quit"), GTK_RESPONSE_YES,
 			NULL);
+
 	g_free (title);
 	app->dialogs.close_confirmation = dialog;
 	ucd = g_malloc (sizeof (struct UgConfirmationDialog));
@@ -700,32 +703,32 @@ void	ug_app_confirm_to_quit (UgAppGtk* app)
 	hbox = (GtkBox*) gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
 	gtk_box_pack_start (hbox, gtk_image_new_from_stock (GTK_STOCK_DIALOG_QUESTION, GTK_ICON_SIZE_DIALOG),
 	                    FALSE, FALSE, 8);
-	gtk_box_pack_start (hbox, gtk_label_new (_("Are you sure you want to quit?")),
+	gtk_box_pack_start (hbox, gtk_label_new (_("Do you want to quit or minimize and keep running in the taskbar?")),
 	                    FALSE, FALSE, 4);
 	gtk_box_pack_start (vbox, (GtkWidget*) hbox, FALSE, FALSE, 6);
 	// check button
 	hbox = (GtkBox*) gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
-	button = gtk_check_button_new_with_label (_("Remember this action"));
+	button = gtk_check_button_new_with_label (_("Remember my choice"));
 	gtk_box_pack_end (hbox, button, TRUE, TRUE, 20);
 	gtk_box_pack_end (vbox, (GtkWidget*) hbox, FALSE, FALSE, 10);
 	ucd->confirmation = (GtkToggleButton*) button;
-	// radio button
-	button = gtk_radio_button_new_with_label_from_widget (NULL, _("Minimize to tray"));
-	gtk_box_pack_start (vbox, button, FALSE, FALSE, 1);
-	button = gtk_radio_button_new_with_label_from_widget ((GtkRadioButton*) button, _("Exit uGet"));
-	gtk_box_pack_start (vbox, button, FALSE, FALSE, 1);
-	ucd->setting = (GtkToggleButton*) button;
 	// config
+	switch(app->setting.ui.close_action) {
+		case 1:
+                  default_action = GTK_RESPONSE_NO;
+		  break;
+		case 2:
+		  default_action = GTK_RESPONSE_YES;
+		  break;
+		default:
+		  default_action = GTK_RESPONSE_YES;
+		  break;
+	}
 	if (app->setting.ui.close_action == 0)
-		gtk_toggle_button_set_active (ucd->confirmation, TRUE);
-	else if (app->setting.ui.close_confirmation == FALSE)
-		gtk_toggle_button_set_active (ucd->confirmation, TRUE);
-	else
 		gtk_toggle_button_set_active (ucd->confirmation, FALSE);
-//	if (app->setting.ui.close_action == 1)
-//		gtk_toggle_button_set_active (ucd->setting, TRUE);
-	if (app->setting.ui.close_action == 2)
-		gtk_toggle_button_set_active ((GtkToggleButton*) button, TRUE);
+	gtk_dialog_set_default_response ((GtkDialog*) dialog, default_action);
+	gtk_style_context_add_class (gtk_widget_get_style_context (
+	                gtk_dialog_get_widget_for_response( (GtkDialog*) dialog, default_action )), "suggested-action");
 
 	g_signal_connect (dialog, "response",
 			G_CALLBACK (on_confirm_to_quit_response), ucd);
