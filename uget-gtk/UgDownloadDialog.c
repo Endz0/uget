@@ -75,10 +75,12 @@ UgDownloadDialog*	ug_download_dialog_new (const gchar* title, GtkWindow* parent)
 	gtk_box_pack_start (box, widget, FALSE, FALSE, 0);
 	ddialog->button_forward = widget;
 	g_signal_connect (widget, "clicked", G_CALLBACK (on_button_forward), ddialog);
-	// OK & cancel buttons
+	// Download & Cancel buttons
 	gtk_dialog_add_button (ddialog->self, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL);
-	gtk_dialog_add_button (ddialog->self, GTK_STOCK_OK, GTK_RESPONSE_OK);
+	gtk_dialog_add_button (ddialog->self, _("Download"), GTK_RESPONSE_OK);
 	gtk_dialog_set_default_response (ddialog->self, GTK_RESPONSE_OK);
+	gtk_style_context_add_class (gtk_widget_get_style_context (
+	                gtk_dialog_get_widget_for_response( ddialog->self, GTK_RESPONSE_OK )), "suggested-action");
 
 	// form (Page 1)
 	ug_proxy_form_init (&ddialog->proxy);
